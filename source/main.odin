@@ -183,8 +183,8 @@ parse_label :: proc(program: []u8, start: int) -> (l: string, new_index: int) {
 	first := skip_non_whitespace(program, start);
 	index := first;
 	
-	if index < len(program) && program[index] != '\n' {
-		index += 1;
+	for index < len(program) && program[index] != '\n' {
+		index = skip_non_whitespace(program, index + 1);
 	}
 	
 	label := transmute(string)program[first:index];
@@ -198,12 +198,10 @@ parse_instruction :: proc(program: []u8, start: int) -> (Instr, int) {
 	for format in instr_formats {
 		match, new_index := compare_ignoring_whitespace(program, index, format.kind_string);
 		if match {
-			index = new_index;
 			instr.kind = format.kind;
 			
-			match, new_index = compare_ignoring_whitespace(program, index, format.operator_string);
+			match, new_index = compare_ignoring_whitespace(program, new_index, format.operator_string);
 			if match {
-				index = new_index;
 				instr.operator = format.operator;
 				
 				instr_needs_number :: proc(operator: Instr_Operator) -> bool {
@@ -216,9 +214,9 @@ parse_instruction :: proc(program: []u8, start: int) -> (Instr, int) {
 				}
 				
 				if instr_needs_number(instr.operator) {
-					instr.number, new_index = parse_number(program, index);
+					instr.number, new_index = parse_number(program, new_index);
 				} else if instr_needs_label(instr.operator) {
-					instr.label, new_index = parse_label(program, index);
+					instr.label, new_index = parse_label(program, new_index);
 				}
 				
 				index = new_index;
@@ -279,6 +277,8 @@ run_program :: proc(program: []u8) {
 		
 		index = new_index;
 	}
+	
+	return;
 }
 
 ////////////////////////////////////////////////////////////////
