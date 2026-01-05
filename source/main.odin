@@ -283,7 +283,7 @@ stack_swap :: proc(stack: []int, stack_top: ^int) {
 		   stack_top^ <= len(stack));
 	
 	if stack_top^ > 1 && stack_top^ < len(stack) {
-		stack[stack_top^], stack[stack_top^ - 1] = stack[stack_top^ - 1], stack[stack_top^];
+		stack[stack_top^ - 1], stack[stack_top^ - 2] = stack[stack_top^ - 2], stack[stack_top^ - 1];
 	}
 }
 
@@ -303,7 +303,7 @@ arithmetic_add :: proc(stack: []int, stack_top: ^int) {
 		   stack_top^ <= len(stack));
 	
 	if stack_top^ > 1 {
-		stack[stack_top^ - 1] += stack[stack_top^];
+		stack[stack_top^ - 2] += stack[stack_top^ - 1];
 		stack_top^ -= 1;
 	}
 }
@@ -314,7 +314,7 @@ arithmetic_sub :: proc(stack: []int, stack_top: ^int) {
 		   stack_top^ <= len(stack));
 	
 	if stack_top^ > 1 {
-		stack[stack_top^ - 1] -= stack[stack_top^];
+		stack[stack_top^ - 2] -= stack[stack_top^ - 1];
 		stack_top^ -= 1;
 	}
 }
@@ -325,7 +325,7 @@ arithmetic_mul :: proc(stack: []int, stack_top: ^int) {
 		   stack_top^ <= len(stack));
 	
 	if stack_top^ > 1 {
-		stack[stack_top^ - 1] *= stack[stack_top^];
+		stack[stack_top^ - 2] *= stack[stack_top^ - 1];
 		stack_top^ -= 1;
 	}
 }
@@ -336,7 +336,7 @@ arithmetic_div :: proc(stack: []int, stack_top: ^int) {
 		   stack_top^ <= len(stack));
 	
 	if stack_top^ > 1 {
-		stack[stack_top^ - 1] /= stack[stack_top^] if stack[stack_top^] != 0 else 1;
+		stack[stack_top^ - 2] /= stack[stack_top^ - 1] if stack[stack_top^ - 1] != 0 else 1;
 		stack_top^ -= 1;
 	}
 }
@@ -347,7 +347,7 @@ arithmetic_mod :: proc(stack: []int, stack_top: ^int) {
 		   stack_top^ <= len(stack));
 	
 	if stack_top^ > 1 {
-		stack[stack_top^ - 1] %= stack[stack_top^] if stack[stack_top^] != 0 else 1;
+		stack[stack_top^ - 2] %= stack[stack_top^ - 1] if stack[stack_top^ - 1] != 0 else 1;
 		stack_top^ -= 1;
 	}
 }
@@ -360,8 +360,8 @@ heap_store :: proc(stack: []int, stack_top: ^int, heap: []int) {
 		   stack_top^ <= len(stack));
 	
 	if stack_top^ > 1 {
-		number := stack[stack_top^];
-		address := stack[stack_top^ - 1];
+		number := stack[stack_top^ - 1];
+		address := stack[stack_top^ - 2];
 		
 		if address >= 0 && address < len(heap) {
 			heap[address] = number;
@@ -374,8 +374,8 @@ heap_retrieve :: proc(stack: []int, stack_top: ^int, heap: []int) {
 		   stack_top^ >= 0  &&
 		   stack_top^ <= len(stack));
 	
-	if stack_top^ > 0 && stack_top^ < len(stack){
-		address := stack[stack_top^];
+	if stack_top^ > 0 && stack_top^ < len(stack) {
+		address := stack[stack_top^ - 1];
 		
 		if address >= 0 && address < len(heap) {
 			number := heap[address];
