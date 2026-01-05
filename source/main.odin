@@ -183,6 +183,9 @@ parse_label :: proc(program: []u8, start: int) -> (l: string, new_index: int) {
 	first := skip_non_whitespace(program, start);
 	index := first;
 	
+	// TODO(ema): You can't simply save a slice of the original string as a label, because it could contain non-whitespace,
+	// and the declaration and the jump might be different if not ignoring non-whitespace.
+	// Either clone the strings and filter them out of non-whitespace, or use a custom comparison function in the hash map
 	for index < len(program) && program[index] != '\n' {
 		index = skip_non_whitespace(program, index + 1);
 	}
