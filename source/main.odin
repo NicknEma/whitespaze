@@ -259,6 +259,11 @@ run_program :: proc(program: []u8) {
 			case .Heap_Store:    heap_store(stack[:], &stack_top, heap[:]);
 			case .Heap_Retrieve: heap_retrieve(stack[:], &stack_top, heap[:]);
 			
+			case .Flow_Control_Mark: flow_control_mark(&label_map, instr.label, new_index);
+			case .Flow_Control_Jump: flow_control_jump(&label_map, instr.label, &new_index);
+			case .Flow_Control_Jump_If_Zero:     flow_control_jump_if_zero(&label_map, instr.label, stack[:], stack_top, &new_index);
+			case .Flow_Control_Jump_If_Negative: flow_control_jump_if_negative(&label_map, instr.label, stack[:], stack_top, &new_index);
+			
 			case .IO_Out_Char:   io_out_char(stack[:], &stack_top);
 			case .IO_Out_Number: io_out_number(stack[:], &stack_top);
 			case .IO_In_Char:    io_in_char(stack[:], &stack_top);
@@ -280,6 +285,8 @@ stack: [1024]int;
 stack_top := 0
 
 heap: [1024]int;
+
+label_map: map[string]int;
 
 stack_is_valid :: proc(stack: []int, stack_top: int) -> bool {
 	return stack_top >= 0 && stack_top <= len(stack);
@@ -397,6 +404,36 @@ heap_retrieve :: proc(stack: []int, stack_top: ^int, heap: []int) {
 			
 			stack[stack_top^] = number;
 			stack_top^ += 1;
+		}
+	}
+}
+
+flow_control_mark :: proc(label_map: ^map[string]int, label: string, index: int) {
+	label_map[label] = index;
+}
+
+flow_control_jump :: proc(label_map: ^map[string]int, label: string, index: ^int) {
+	index^ = label_map[label];
+}
+
+flow_control_jump_if_zero :: proc(label_map: ^map[string]int, label: string, stack: []int, stack_top: int, index: ^int) {
+	assert(stack_is_valid(stack, stack_top));
+	
+	if stack_top > 0 {
+		cond := stack[stack_top - 1];
+		if cond == 0 {
+			index^ = label_map[label];
+		}
+	}
+}
+
+flow_control_jump_if_negative :: proc(label_map: ^map[string]int, label: string, stack: []int, stack_top: int, index: ^int) {
+	assert(stack_is_valid(stack, stack_top));
+	
+	if stack_top > 0 {
+		cond := stack[stack_top - 1];
+		if cond < 0 {
+			index^ = label_map[label];
 		}
 	}
 }
