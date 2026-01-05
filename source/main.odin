@@ -48,6 +48,8 @@ main :: proc() {
 					program := transmute([]u8)program_string;
 					
 					run_program(program);
+					
+					x := 0; _ = x;
 				} else {
 					fmt.eprintf("The file '%s' could not be opened or read.\n", file);
 				}
@@ -64,11 +66,12 @@ main :: proc() {
 	}
 }
 
-Instr_Kind :: enum { Stack, Arithmetic, Heap, Flow_Control, IO }
+Instr_Kind :: enum { None = 0, Stack, Arithmetic, Heap, Flow_Control, IO }
 
 Instr_Operator :: enum {
 	Stack_Push, Stack_Duplicate, Stack_Copy, Stack_Swap, Stack_Discard, Stack_Slide,
 	Heap_Store, Heap_Retrieve,
+	IO_Out_Char, IO_Out_Number, IO_In_Char, IO_In_Number,
 }
 
 Instr :: struct {
@@ -97,6 +100,11 @@ instr_formats := [?]Instr_Format {
 	
 	Instr_Format{kind = .Heap,  kind_string = "\t\t", operator = .Heap_Store,      operator_string = " "},
 	Instr_Format{kind = .Heap,  kind_string = "\t\t", operator = .Heap_Retrieve,   operator_string = "\t"},
+	
+	Instr_Format{kind = .IO,    kind_string = "\t\n", operator = .IO_Out_Char,     operator_string = "  "},
+	Instr_Format{kind = .IO,    kind_string = "\t\n", operator = .IO_Out_Number,   operator_string = " \t"},
+	Instr_Format{kind = .IO,    kind_string = "\t\n", operator = .IO_In_Char,      operator_string = "\t "},
+	Instr_Format{kind = .IO,    kind_string = "\t\n", operator = .IO_In_Number,    operator_string = "\t\t"},
 }
 
 is_whitespace :: proc(c: u8) -> bool {
@@ -136,6 +144,7 @@ parse_number :: proc(program: []u8, start: int) -> (n: int, new_index: int) {
 		for index < len(program) {
 			index = skip_non_whitespace(program, index);
 			if index >= len(program) || program[index] == '\n' {
+				if program[index] == '\n' do index += 1;
 				break;
 			}
 			digit := program[index] == '\t' ? 1 : 0;
@@ -175,6 +184,8 @@ parse_instruction :: proc(program: []u8, start: int) -> (Instr, int) {
 		}
 	}
 	
+	if instr.kind == .None do index += 1;
+	
 	return instr, index;
 }
 
@@ -182,7 +193,9 @@ stack: [1024]int;
 stack_top := 0;
 
 stack_push :: proc(stack: []int, stack_top: ^int, number: int) {
-	assert(stack_top != nil);
+	assert(stack_top != nil &&
+		   stack_top^ >= 0  &&
+		   stack_top^ <= len(stack));
 	
 	if stack_top^ < len(stack) {
 		stack[stack_top^] = number;
@@ -191,7 +204,9 @@ stack_push :: proc(stack: []int, stack_top: ^int, number: int) {
 }
 
 stack_duplicate :: proc(stack: []int, stack_top: ^int) {
-	assert(stack_top != nil);
+	assert(stack_top != nil &&
+		   stack_top^ >= 0  &&
+		   stack_top^ <= len(stack));
 	
 	if stack_top^ > 0 && stack_top^ < len(stack) {
 		stack[stack_top^] = stack[stack_top^ - 1];
@@ -200,7 +215,9 @@ stack_duplicate :: proc(stack: []int, stack_top: ^int) {
 }
 
 stack_copy :: proc(stack: []int, stack_top: ^int, number: int) {
-	assert(stack_top != nil);
+	assert(stack_top != nil &&
+		   stack_top^ >= 0  &&
+		   stack_top^ <= len(stack));
 	
 	if stack_top^ < len(stack) && number >= 0 && number < stack_top^ {
 		stack[stack_top^] = stack[number];
@@ -209,7 +226,9 @@ stack_copy :: proc(stack: []int, stack_top: ^int, number: int) {
 }
 
 stack_swap :: proc(stack: []int, stack_top: ^int) {
-	assert(stack_top != nil);
+	assert(stack_top != nil &&
+		   stack_top^ >= 0  &&
+		   stack_top^ <= len(stack));
 	
 	if stack_top^ > 1 && stack_top^ < len(stack) {
 		stack[stack_top^], stack[stack_top^ - 1] = stack[stack_top^ - 1], stack[stack_top^];
@@ -217,10 +236,56 @@ stack_swap :: proc(stack: []int, stack_top: ^int) {
 }
 
 stack_discard :: proc(stack: []int, stack_top: ^int) {
-	assert(stack_top != nil);
+	assert(stack_top != nil &&
+		   stack_top^ >= 0  &&
+		   stack_top^ <= len(stack));
 	
 	if stack_top^ > 0 {
 		stack_top^ -= 1;
+	}
+}
+
+io_out_char :: proc(stack: []int, stack_top: ^int) {
+	assert(stack_top != nil &&
+		   stack_top^ >= 0  &&
+		   stack_top^ <= len(stack));
+	
+	if stack_top^ > 0 {
+		char := stack[stack_top^ - 1];
+		fmt.printf("%c", cast(i8)char);
+	}
+}
+
+io_out_number :: proc(stack: []int, stack_top: ^int) {
+	assert(stack_top != nil &&
+		   stack_top^ >= 0  &&
+		   stack_top^ <= len(stack));
+	
+	if stack_top^ > 0 {
+		number := stack[stack_top^ - 1];
+		fmt.printf("%i", number);
+	}
+}
+
+io_in_char :: proc(stack: []int, stack_top: ^int) {
+	assert(stack_top != nil &&
+		   stack_top^ >= 0  &&
+		   stack_top^ <= len(stack));
+	
+	if stack_top^ < len(stack) {
+		char := cast(i8)0; // TODO(ema): Incomplete
+		stack[stack_top^] = cast(int)char;
+	}
+}
+
+io_in_number :: proc(stack: []int, stack_top: ^int) {
+	assert(stack_top != nil &&
+		   stack_top^ >= 0  &&
+		   stack_top^ <= len(stack));
+	
+	if stack_top^ < len(stack) {
+		number := 0; // TODO(ema): Incomplete
+		stack[stack_top^] = number;
 	}
 }
 
@@ -233,37 +298,20 @@ run_program :: proc(program: []u8) {
 		instr, index = parse_instruction(program, index);
 		
 		#partial switch instr.operator {
-			case .Stack_Push: {
-				stack_push(stack[:], &stack_top, instr.number);
-			}
+			case .Stack_Push: stack_push(stack[:], &stack_top, instr.number);
+			case .Stack_Duplicate: stack_duplicate(stack[:], &stack_top);
+			case .Stack_Copy: stack_copy(stack[:], &stack_top, instr.number);
+			case .Stack_Swap: stack_swap(stack[:], &stack_top);
+			case .Stack_Discard: stack_discard(stack[:], &stack_top);
+			case .Stack_Slide: /* stack_slide(stack[:], &stack_top, instr.number); */;
 			
-			case .Stack_Duplicate: {
-				stack_duplicate(stack[:], &stack_top);
-			}
+			case .Heap_Store: /* heap_store(stack[:], &stack_top, instr.number); */ ;
+			case .Heap_Retrieve: /* heap_retrieve(stack[:], &stack_top, instr.number); */;
 			
-			case .Stack_Copy: {
-				stack_copy(stack[:], &stack_top, instr.number);
-			}
-			
-			case .Stack_Swap: {
-				stack_swap(stack[:], &stack_top);
-			}
-			
-			case .Stack_Discard: {
-				stack_discard(stack[:], &stack_top);
-			}
-			
-			case .Stack_Slide: {
-				// stack_slide(stack[:], &stack_top, instr.number);
-			}
-			
-			case .Heap_Store: {
-				// heap_store(stack[:], &stack_top, instr.number);
-			}
-			
-			case .Heap_Retrieve: {
-				// heap_retrieve(stack[:], &stack_top, instr.number);
-			}
+			case .IO_Out_Char:   io_out_char(stack[:], &stack_top);
+			case .IO_Out_Number: io_out_number(stack[:], &stack_top);
+			case .IO_In_Char:    io_in_char(stack[:], &stack_top);
+			case .IO_In_Number:  io_in_number(stack[:], &stack_top);
 			
 			case: {
 				fmt.print("Unimplemented\n");
