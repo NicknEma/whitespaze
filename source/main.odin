@@ -306,6 +306,40 @@ arithmetic_mod :: proc(stack: []int, stack_top: ^int) {
 	}
 }
 
+heap: [1024]int;
+
+heap_store :: proc(stack: []int, stack_top: ^int, heap: []int) {
+	assert(stack_top != nil &&
+		   stack_top^ >= 0  &&
+		   stack_top^ <= len(stack));
+	
+	if stack_top^ > 1 {
+		number := stack[stack_top^];
+		address := stack[stack_top^ - 1];
+		
+		if address >= 0 && address < len(heap) {
+			heap[address] = number;
+		}
+	}
+}
+
+heap_retrieve :: proc(stack: []int, stack_top: ^int, heap: []int) {
+	assert(stack_top != nil &&
+		   stack_top^ >= 0  &&
+		   stack_top^ <= len(stack));
+	
+	if stack_top^ > 0 && stack_top^ < len(stack){
+		address := stack[stack_top^];
+		
+		if address >= 0 && address < len(heap) {
+			number := heap[address];
+			
+			stack[stack_top^] = number;
+			stack_top^ += 1;
+		}
+	}
+}
+
 io_out_char :: proc(stack: []int, stack_top: ^int) {
 	assert(stack_top != nil &&
 		   stack_top^ >= 0  &&
@@ -387,8 +421,8 @@ run_program :: proc(program: []u8) {
 			case .Arithmetic_Division:       arithmetic_div(stack[:], &stack_top);
 			case .Arithmetic_Modulo:         arithmetic_mod(stack[:], &stack_top);
 			
-			case .Heap_Store: /* heap_store(stack[:], &stack_top, instr.number); */ ;
-			case .Heap_Retrieve: /* heap_retrieve(stack[:], &stack_top, instr.number); */;
+			case .Heap_Store: heap_store(stack[:], &stack_top, heap[:]);
+			case .Heap_Retrieve: heap_retrieve(stack[:], &stack_top, heap[:]);
 			
 			case .IO_Out_Char:   io_out_char(stack[:], &stack_top);
 			case .IO_Out_Number: io_out_number(stack[:], &stack_top);
