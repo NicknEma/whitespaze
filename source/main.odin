@@ -69,6 +69,7 @@ Instr_Kind :: enum { None = 0, Stack, Arithmetic, Heap, Flow_Control, IO }
 
 Instr_Operator :: enum {
 	Stack_Push, Stack_Duplicate, Stack_Copy, Stack_Swap, Stack_Discard, Stack_Slide,
+	Arithmetic_Addition, Arithmetic_Subtraction, Arithmetic_Multiplication, Arithmetic_Division, Arithmetic_Modulo,
 	Heap_Store, Heap_Retrieve,
 	IO_Out_Char, IO_Out_Number, IO_In_Char, IO_In_Number,
 }
@@ -96,6 +97,12 @@ instr_formats := [?]Instr_Format {
 	Instr_Format{kind = .Stack, kind_string = " ",    operator = .Stack_Swap,      operator_string = "\n\t"},
 	Instr_Format{kind = .Stack, kind_string = " ",    operator = .Stack_Discard,   operator_string = "\n\n"},
 	Instr_Format{kind = .Stack, kind_string = " ",    operator = .Stack_Slide,     operator_string = "\t\n"},
+	
+	Instr_Format{kind = .Arithmetic, kind_string = "\t ", operator = .Arithmetic_Addition,       operator_string = "  "},
+	Instr_Format{kind = .Arithmetic, kind_string = "\t ", operator = .Arithmetic_Subtraction,    operator_string = " \t"},
+	Instr_Format{kind = .Arithmetic, kind_string = "\t ", operator = .Arithmetic_Multiplication, operator_string = " \n"},
+	Instr_Format{kind = .Arithmetic, kind_string = "\t ", operator = .Arithmetic_Division,       operator_string = "\t "},
+	Instr_Format{kind = .Arithmetic, kind_string = "\t ", operator = .Arithmetic_Modulo,         operator_string = "\t\t"},
 	
 	Instr_Format{kind = .Heap,  kind_string = "\t\t", operator = .Heap_Store,      operator_string = " "},
 	Instr_Format{kind = .Heap,  kind_string = "\t\t", operator = .Heap_Retrieve,   operator_string = "\t"},
@@ -244,6 +251,61 @@ stack_discard :: proc(stack: []int, stack_top: ^int) {
 	}
 }
 
+arithmetic_add :: proc(stack: []int, stack_top: ^int) {
+	assert(stack_top != nil &&
+		   stack_top^ >= 0  &&
+		   stack_top^ <= len(stack));
+	
+	if stack_top^ > 1 {
+		stack[stack_top^ - 1] += stack[stack_top^];
+		stack_top^ -= 1;
+	}
+}
+
+arithmetic_sub :: proc(stack: []int, stack_top: ^int) {
+	assert(stack_top != nil &&
+		   stack_top^ >= 0  &&
+		   stack_top^ <= len(stack));
+	
+	if stack_top^ > 1 {
+		stack[stack_top^ - 1] -= stack[stack_top^];
+		stack_top^ -= 1;
+	}
+}
+
+arithmetic_mul :: proc(stack: []int, stack_top: ^int) {
+	assert(stack_top != nil &&
+		   stack_top^ >= 0  &&
+		   stack_top^ <= len(stack));
+	
+	if stack_top^ > 1 {
+		stack[stack_top^ - 1] *= stack[stack_top^];
+		stack_top^ -= 1;
+	}
+}
+
+arithmetic_div :: proc(stack: []int, stack_top: ^int) {
+	assert(stack_top != nil &&
+		   stack_top^ >= 0  &&
+		   stack_top^ <= len(stack));
+	
+	if stack_top^ > 1 {
+		stack[stack_top^ - 1] /= stack[stack_top^] if stack[stack_top^] != 0 else 1;
+		stack_top^ -= 1;
+	}
+}
+
+arithmetic_mod :: proc(stack: []int, stack_top: ^int) {
+	assert(stack_top != nil &&
+		   stack_top^ >= 0  &&
+		   stack_top^ <= len(stack));
+	
+	if stack_top^ > 1 {
+		stack[stack_top^ - 1] %= stack[stack_top^] if stack[stack_top^] != 0 else 1;
+		stack_top^ -= 1;
+	}
+}
+
 io_out_char :: proc(stack: []int, stack_top: ^int) {
 	assert(stack_top != nil &&
 		   stack_top^ >= 0  &&
@@ -318,6 +380,12 @@ run_program :: proc(program: []u8) {
 			case .Stack_Swap: stack_swap(stack[:], &stack_top);
 			case .Stack_Discard: stack_discard(stack[:], &stack_top);
 			case .Stack_Slide: /* stack_slide(stack[:], &stack_top, instr.number); */;
+			
+			case .Arithmetic_Addition:       arithmetic_add(stack[:], &stack_top);
+			case .Arithmetic_Subtraction:    arithmetic_sub(stack[:], &stack_top);
+			case .Arithmetic_Multiplication: arithmetic_mul(stack[:], &stack_top);
+			case .Arithmetic_Division:       arithmetic_div(stack[:], &stack_top);
+			case .Arithmetic_Modulo:         arithmetic_mod(stack[:], &stack_top);
 			
 			case .Heap_Store: /* heap_store(stack[:], &stack_top, instr.number); */ ;
 			case .Heap_Retrieve: /* heap_retrieve(stack[:], &stack_top, instr.number); */;
