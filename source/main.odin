@@ -65,6 +65,9 @@ main :: proc() {
 	return;
 }
 
+////////////////////////////////////////////////////////////////
+// Parser
+
 Instr_Kind :: enum { None = 0, Stack, Arithmetic, Heap, Flow_Control, IO }
 
 Instr_Operator :: enum {
@@ -194,6 +197,49 @@ parse_instruction :: proc(program: []u8, start: int) -> (Instr, int) {
 	
 	return instr, index;
 }
+
+////////////////////////////////////////////////////////////////
+// Interpreter
+
+run_program :: proc(program: []u8) {
+	stack_top = 0;
+	
+	index := 0;
+	for index < len(program) {
+		instr, new_index := parse_instruction(program, index);
+		
+		#partial switch instr.operator {
+			case .Stack_Push: stack_push(stack[:], &stack_top, instr.number);
+			case .Stack_Duplicate: stack_duplicate(stack[:], &stack_top);
+			case .Stack_Copy: stack_copy(stack[:], &stack_top, instr.number);
+			case .Stack_Swap: stack_swap(stack[:], &stack_top);
+			case .Stack_Discard: stack_discard(stack[:], &stack_top);
+			case .Stack_Slide: /* stack_slide(stack[:], &stack_top, instr.number); */;
+			
+			case .Arithmetic_Addition:       arithmetic_add(stack[:], &stack_top);
+			case .Arithmetic_Subtraction:    arithmetic_sub(stack[:], &stack_top);
+			case .Arithmetic_Multiplication: arithmetic_mul(stack[:], &stack_top);
+			case .Arithmetic_Division:       arithmetic_div(stack[:], &stack_top);
+			case .Arithmetic_Modulo:         arithmetic_mod(stack[:], &stack_top);
+			
+			case .Heap_Store: heap_store(stack[:], &stack_top, heap[:]);
+			case .Heap_Retrieve: heap_retrieve(stack[:], &stack_top, heap[:]);
+			case .IO_Out_Char:   io_out_char(stack[:], &stack_top);
+			case .IO_Out_Number: io_out_number(stack[:], &stack_top);
+			case .IO_In_Char:    io_in_char(stack[:], &stack_top);
+			case .IO_In_Number:  io_in_number(stack[:], &stack_top);
+			
+			case: {
+				fmt.print("Unimplemented\n");
+			}
+		}
+		
+		index = new_index;
+	}
+}
+
+////////////////////////////////////////////////////////////////
+// Runtime helpers
 
 stack: [1024]int;
 stack_top := 0;
@@ -395,43 +441,6 @@ io_in_number :: proc(stack: []int, stack_top: ^int) {
 			
 			stack[stack_top^] = number;
 			stack_top^ += 1;
-		}
-	}
-}
-
-run_program :: proc(program: []u8) {
-	stack_top = 0;
-	
-	index := 0;
-	for index < len(program) {
-		instr: Instr;
-		instr, index = parse_instruction(program, index);
-		
-		#partial switch instr.operator {
-			case .Stack_Push: stack_push(stack[:], &stack_top, instr.number);
-			case .Stack_Duplicate: stack_duplicate(stack[:], &stack_top);
-			case .Stack_Copy: stack_copy(stack[:], &stack_top, instr.number);
-			case .Stack_Swap: stack_swap(stack[:], &stack_top);
-			case .Stack_Discard: stack_discard(stack[:], &stack_top);
-			case .Stack_Slide: /* stack_slide(stack[:], &stack_top, instr.number); */;
-			
-			case .Arithmetic_Addition:       arithmetic_add(stack[:], &stack_top);
-			case .Arithmetic_Subtraction:    arithmetic_sub(stack[:], &stack_top);
-			case .Arithmetic_Multiplication: arithmetic_mul(stack[:], &stack_top);
-			case .Arithmetic_Division:       arithmetic_div(stack[:], &stack_top);
-			case .Arithmetic_Modulo:         arithmetic_mod(stack[:], &stack_top);
-			
-			case .Heap_Store: heap_store(stack[:], &stack_top, heap[:]);
-			case .Heap_Retrieve: heap_retrieve(stack[:], &stack_top, heap[:]);
-			
-			case .IO_Out_Char:   io_out_char(stack[:], &stack_top);
-			case .IO_Out_Number: io_out_number(stack[:], &stack_top);
-			case .IO_In_Char:    io_in_char(stack[:], &stack_top);
-			case .IO_In_Number:  io_in_number(stack[:], &stack_top);
-			
-			case: {
-				fmt.print("Unimplemented\n");
-			}
 		}
 	}
 }
