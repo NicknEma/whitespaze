@@ -278,11 +278,13 @@ run_program :: proc(program: []u8) {
 stack: [1024]int;
 stack_top := 0
 
-heap: [1024];
-stack_is_valid :: proc(stack: []u8, stack_top: int) -> bool {
+heap: [1024]int;
+
+stack_is_valid :: proc(stack: []int, stack_top: int) -> bool {
 	return stack_top >= 0 && stack_top <= len(stack);
 }
 
+stack_push :: proc(stack: []int, stack_top: ^int, number: int) {
 	assert(stack_is_valid(stack, stack_top^));
 	
 	if stack_top^ < len(stack) {
@@ -371,7 +373,6 @@ arithmetic_mod :: proc(stack: []int, stack_top: ^int) {
 }
 
 heap_store :: proc(stack: []int, stack_top: ^int, heap: []int) {
-	assert(stack_top != nil &&
 	assert(stack_is_valid(stack, stack_top^));
 	
 	if stack_top^ > 1 {
@@ -385,7 +386,6 @@ heap_store :: proc(stack: []int, stack_top: ^int, heap: []int) {
 }
 
 heap_retrieve :: proc(stack: []int, stack_top: ^int, heap: []int) {
-	assert(stack_top != nil &&
 	assert(stack_is_valid(stack, stack_top^));
 	
 	if stack_top^ > 0 && stack_top^ < len(stack) {
@@ -401,9 +401,7 @@ heap_retrieve :: proc(stack: []int, stack_top: ^int, heap: []int) {
 }
 
 io_out_char :: proc(stack: []int, stack_top: ^int) {
-	assert(stack_top != nil &&
-		   stack_top^ >= 0  &&
-		   stack_top^ <= len(stack));
+	assert(stack_is_valid(stack, stack_top^));
 	
 	if stack_top^ > 0 {
 		char := stack[stack_top^ - 1];
@@ -412,9 +410,7 @@ io_out_char :: proc(stack: []int, stack_top: ^int) {
 }
 
 io_out_number :: proc(stack: []int, stack_top: ^int) {
-	assert(stack_top != nil &&
-		   stack_top^ >= 0  &&
-		   stack_top^ <= len(stack));
+	assert(stack_is_valid(stack, stack_top^));
 	
 	if stack_top^ > 0 {
 		number := stack[stack_top^ - 1];
@@ -423,9 +419,7 @@ io_out_number :: proc(stack: []int, stack_top: ^int) {
 }
 
 io_in_char :: proc(stack: []int, stack_top: ^int) {
-	assert(stack_top != nil &&
-		   stack_top^ >= 0  &&
-		   stack_top^ <= len(stack));
+	assert(stack_is_valid(stack, stack_top^));
 	
 	if stack_top^ < len(stack) {
 		data: [1]u8;
@@ -441,9 +435,7 @@ io_in_char :: proc(stack: []int, stack_top: ^int) {
 }
 
 io_in_number :: proc(stack: []int, stack_top: ^int) {
-	assert(stack_top != nil &&
-		   stack_top^ >= 0  &&
-		   stack_top^ <= len(stack));
+	assert(stack_is_valid(stack, stack_top^));
 	
 	if stack_top^ < len(stack) {
 		data: [1]u8;
