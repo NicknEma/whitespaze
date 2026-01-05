@@ -276,12 +276,14 @@ run_program :: proc(program: []u8) {
 // Runtime helpers
 
 stack: [1024]int;
-stack_top := 0;
+stack_top := 0
 
-stack_push :: proc(stack: []int, stack_top: ^int, number: int) {
-	assert(stack_top != nil &&
-		   stack_top^ >= 0  &&
-		   stack_top^ <= len(stack));
+heap: [1024];
+stack_is_valid :: proc(stack: []u8, stack_top: int) -> bool {
+	return stack_top >= 0 && stack_top <= len(stack);
+}
+
+	assert(stack_is_valid(stack, stack_top^));
 	
 	if stack_top^ < len(stack) {
 		stack[stack_top^] = number;
@@ -290,9 +292,7 @@ stack_push :: proc(stack: []int, stack_top: ^int, number: int) {
 }
 
 stack_duplicate :: proc(stack: []int, stack_top: ^int) {
-	assert(stack_top != nil &&
-		   stack_top^ >= 0  &&
-		   stack_top^ <= len(stack));
+	assert(stack_is_valid(stack, stack_top^));
 	
 	if stack_top^ > 0 && stack_top^ < len(stack) {
 		stack[stack_top^] = stack[stack_top^ - 1];
@@ -301,9 +301,7 @@ stack_duplicate :: proc(stack: []int, stack_top: ^int) {
 }
 
 stack_copy :: proc(stack: []int, stack_top: ^int, number: int) {
-	assert(stack_top != nil &&
-		   stack_top^ >= 0  &&
-		   stack_top^ <= len(stack));
+	assert(stack_is_valid(stack, stack_top^));
 	
 	if stack_top^ < len(stack) && number >= 0 && number < stack_top^ {
 		stack[stack_top^] = stack[number];
@@ -312,9 +310,7 @@ stack_copy :: proc(stack: []int, stack_top: ^int, number: int) {
 }
 
 stack_swap :: proc(stack: []int, stack_top: ^int) {
-	assert(stack_top != nil &&
-		   stack_top^ >= 0  &&
-		   stack_top^ <= len(stack));
+	assert(stack_is_valid(stack, stack_top^));
 	
 	if stack_top^ > 1 && stack_top^ < len(stack) {
 		stack[stack_top^ - 1], stack[stack_top^ - 2] = stack[stack_top^ - 2], stack[stack_top^ - 1];
@@ -322,9 +318,7 @@ stack_swap :: proc(stack: []int, stack_top: ^int) {
 }
 
 stack_discard :: proc(stack: []int, stack_top: ^int) {
-	assert(stack_top != nil &&
-		   stack_top^ >= 0  &&
-		   stack_top^ <= len(stack));
+	assert(stack_is_valid(stack, stack_top^));
 	
 	if stack_top^ > 0 {
 		stack_top^ -= 1;
@@ -332,9 +326,7 @@ stack_discard :: proc(stack: []int, stack_top: ^int) {
 }
 
 arithmetic_add :: proc(stack: []int, stack_top: ^int) {
-	assert(stack_top != nil &&
-		   stack_top^ >= 0  &&
-		   stack_top^ <= len(stack));
+	assert(stack_is_valid(stack, stack_top^));
 	
 	if stack_top^ > 1 {
 		stack[stack_top^ - 2] += stack[stack_top^ - 1];
@@ -343,9 +335,7 @@ arithmetic_add :: proc(stack: []int, stack_top: ^int) {
 }
 
 arithmetic_sub :: proc(stack: []int, stack_top: ^int) {
-	assert(stack_top != nil &&
-		   stack_top^ >= 0  &&
-		   stack_top^ <= len(stack));
+	assert(stack_is_valid(stack, stack_top^));
 	
 	if stack_top^ > 1 {
 		stack[stack_top^ - 2] -= stack[stack_top^ - 1];
@@ -354,9 +344,7 @@ arithmetic_sub :: proc(stack: []int, stack_top: ^int) {
 }
 
 arithmetic_mul :: proc(stack: []int, stack_top: ^int) {
-	assert(stack_top != nil &&
-		   stack_top^ >= 0  &&
-		   stack_top^ <= len(stack));
+	assert(stack_is_valid(stack, stack_top^));
 	
 	if stack_top^ > 1 {
 		stack[stack_top^ - 2] *= stack[stack_top^ - 1];
@@ -365,9 +353,7 @@ arithmetic_mul :: proc(stack: []int, stack_top: ^int) {
 }
 
 arithmetic_div :: proc(stack: []int, stack_top: ^int) {
-	assert(stack_top != nil &&
-		   stack_top^ >= 0  &&
-		   stack_top^ <= len(stack));
+	assert(stack_is_valid(stack, stack_top^));
 	
 	if stack_top^ > 1 {
 		stack[stack_top^ - 2] /= stack[stack_top^ - 1] if stack[stack_top^ - 1] != 0 else 1;
@@ -376,9 +362,7 @@ arithmetic_div :: proc(stack: []int, stack_top: ^int) {
 }
 
 arithmetic_mod :: proc(stack: []int, stack_top: ^int) {
-	assert(stack_top != nil &&
-		   stack_top^ >= 0  &&
-		   stack_top^ <= len(stack));
+	assert(stack_is_valid(stack, stack_top^));
 	
 	if stack_top^ > 1 {
 		stack[stack_top^ - 2] %= stack[stack_top^ - 1] if stack[stack_top^ - 1] != 0 else 1;
@@ -386,12 +370,9 @@ arithmetic_mod :: proc(stack: []int, stack_top: ^int) {
 	}
 }
 
-heap: [1024]int;
-
 heap_store :: proc(stack: []int, stack_top: ^int, heap: []int) {
 	assert(stack_top != nil &&
-		   stack_top^ >= 0  &&
-		   stack_top^ <= len(stack));
+	assert(stack_is_valid(stack, stack_top^));
 	
 	if stack_top^ > 1 {
 		number := stack[stack_top^ - 1];
@@ -405,8 +386,7 @@ heap_store :: proc(stack: []int, stack_top: ^int, heap: []int) {
 
 heap_retrieve :: proc(stack: []int, stack_top: ^int, heap: []int) {
 	assert(stack_top != nil &&
-		   stack_top^ >= 0  &&
-		   stack_top^ <= len(stack));
+	assert(stack_is_valid(stack, stack_top^));
 	
 	if stack_top^ > 0 && stack_top^ < len(stack) {
 		address := stack[stack_top^ - 1];
