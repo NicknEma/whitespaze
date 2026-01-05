@@ -74,6 +74,7 @@ Instr_Operator :: enum {
 	Stack_Push, Stack_Duplicate, Stack_Copy, Stack_Swap, Stack_Discard, Stack_Slide,
 	Arithmetic_Addition, Arithmetic_Subtraction, Arithmetic_Multiplication, Arithmetic_Division, Arithmetic_Modulo,
 	Heap_Store, Heap_Retrieve,
+	Flow_Control_Mark, Flow_Control_Call, Flow_Control_Jump, Flow_Control_Jump_If_Zero, Flow_Control_Jump_If_Negative, Flow_Control_Return, Flow_Control_Exit,
 	IO_Out_Char, IO_Out_Number, IO_In_Char, IO_In_Number,
 }
 
@@ -82,6 +83,7 @@ Instr :: struct {
 	operator: Instr_Operator,
 	
 	number: int,
+	label: string
 }
 
 Instr_Format :: struct {
@@ -109,6 +111,14 @@ instr_formats := [?]Instr_Format {
 	
 	Instr_Format{kind = .Heap,  kind_string = "\t\t", operator = .Heap_Store,      operator_string = " "},
 	Instr_Format{kind = .Heap,  kind_string = "\t\t", operator = .Heap_Retrieve,   operator_string = "\t"},
+	
+	Instr_Format{kind = .Flow_Control, kind_string = "\n", operator = .Flow_Control_Mark,             operator_string = "  "},
+	Instr_Format{kind = .Flow_Control, kind_string = "\n", operator = .Flow_Control_Call,             operator_string = " \t"},
+	Instr_Format{kind = .Flow_Control, kind_string = "\n", operator = .Flow_Control_Jump,             operator_string = " \n"},
+	Instr_Format{kind = .Flow_Control, kind_string = "\n", operator = .Flow_Control_Jump_If_Zero,     operator_string = "\t "},
+	Instr_Format{kind = .Flow_Control, kind_string = "\n", operator = .Flow_Control_Jump_If_Negative, operator_string = "\t\t"},
+	Instr_Format{kind = .Flow_Control, kind_string = "\n", operator = .Flow_Control_Return,           operator_string = "\t\n"},
+	Instr_Format{kind = .Flow_Control, kind_string = "\n", operator = .Flow_Control_Exit,             operator_string = "\n\n"},
 	
 	Instr_Format{kind = .IO,    kind_string = "\t\n", operator = .IO_Out_Char,     operator_string = "  "},
 	Instr_Format{kind = .IO,    kind_string = "\t\n", operator = .IO_Out_Number,   operator_string = " \t"},
@@ -146,6 +156,7 @@ compare_ignoring_whitespace :: proc(program: []u8, start: int, other: string) ->
 parse_number :: proc(program: []u8, start: int) -> (n: int, new_index: int) {
 	number := 0;
 	index := skip_non_whitespace(program, start);
+	
 	if index < len(program) && program[index] != '\n' {
 		sign := program[index] == ' ' ? +1 : -1;
 		index += 1;
@@ -164,7 +175,20 @@ parse_number :: proc(program: []u8, start: int) -> (n: int, new_index: int) {
 		
 		number *= sign;
 	}
+	
 	return number, index;
+}
+
+parse_label :: proc(program: []u8, start: int) -> (l: string, new_index: int) {
+	first := skip_non_whitespace(program, start);
+	index := first;
+	
+	if index < len(program) && program[index] != '\n' {
+		index += 1;
+	}
+	
+	label := transmute(string)program[first:index];
+	return label, index;
 }
 
 parse_instruction :: proc(program: []u8, start: int) -> (Instr, int) {
@@ -182,12 +206,22 @@ parse_instruction :: proc(program: []u8, start: int) -> (Instr, int) {
 				index = new_index;
 				instr.operator = format.operator;
 				
-				if instr.operator == .Stack_Push || instr.operator == .Stack_Copy || instr.operator == .Stack_Slide {
-					instr.number, new_index = parse_number(program, index);
-					index = new_index;
-				} else if false {
+				instr_needs_number :: proc(operator: Instr_Operator) -> bool {
+					return operator == .Stack_Push || operator == .Stack_Copy || operator == .Stack_Slide
 				}
 				
+				instr_needs_label :: proc(operator: Instr_Operator) -> bool {
+					return operator == .Flow_Control_Mark || operator == .Flow_Control_Call || operator == .Flow_Control_Jump ||
+						operator == .Flow_Control_Jump_If_Zero || operator == .Flow_Control_Jump_If_Negative;
+				}
+				
+				if instr_needs_number(instr.operator) {
+					instr.number, new_index = parse_number(program, index);
+				} else if instr_needs_label(instr.operator) {
+					instr.label, new_index = parse_label(program, index);
+				}
+				
+				index = new_index;
 				break;
 			}
 		}
