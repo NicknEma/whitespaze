@@ -5,9 +5,9 @@ import "core:bufio"
 import "core:fmt"
 import "core:os"
 
-Whitespace_Mode :: enum { Help, Run, Build }
-
 main :: proc() {
+	Whitespace_Mode :: enum { Help, Run, Build }
+	
 	mode: Whitespace_Mode;
 	file: string;
 	dest: string;
@@ -43,13 +43,9 @@ main :: proc() {
 		
 		case .Run: {
 			if len(file) > 0 {
-				program_string, read_success := os.read_entire_file(file);
+				program, read_success := os.read_entire_file(file);
 				if read_success {
-					program := transmute([]u8)program_string;
-					
 					run_program(program);
-					
-					x := 0; _ = x;
 				} else {
 					fmt.eprintf("The file '%s' could not be opened or read.\n", file);
 				}
@@ -64,6 +60,8 @@ main :: proc() {
 		
 		case: panic("Invalid switch case");
 	}
+	
+	return;
 }
 
 Instr_Kind :: enum { None = 0, Stack, Arithmetic, Heap, Flow_Control, IO }
