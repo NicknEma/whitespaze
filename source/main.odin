@@ -1,6 +1,7 @@
 package whitespaze
 
 import "core:strings"
+import "core:strconv"
 import "core:bufio"
 import "core:fmt"
 import "core:os"
@@ -87,7 +88,7 @@ Instr_Format :: struct {
 	operator_string:  string,
 }
 
-@rodata
+@(rodata)
 instr_formats := [?]Instr_Format {
 	Instr_Format{kind = .Stack, kind_string = " ",    operator = .Stack_Push,      operator_string = " "},
 	Instr_Format{kind = .Stack, kind_string = " ",    operator = .Stack_Duplicate, operator_string = "\n "},
@@ -271,8 +272,15 @@ io_in_char :: proc(stack: []int, stack_top: ^int) {
 		   stack_top^ <= len(stack));
 	
 	if stack_top^ < len(stack) {
-		char := cast(i8)0; // TODO(ema): Incomplete
-		stack[stack_top^] = cast(int)char;
+		data: [1]u8;
+		total_read, err := os.read_at_least(os.stdin, data[:], 1);
+		
+		if err == nil {
+			char := cast(i8)data[0];
+			
+			stack[stack_top^] = cast(int)char;
+			stack_top^ += 1;
+		}
 	}
 }
 
@@ -282,8 +290,16 @@ io_in_number :: proc(stack: []int, stack_top: ^int) {
 		   stack_top^ <= len(stack));
 	
 	if stack_top^ < len(stack) {
-		number := 0; // TODO(ema): Incomplete
-		stack[stack_top^] = number;
+		data: [1]u8;
+		total_read, err := os.read_at_least(os.stdin, data[:], 1);
+		
+		if err == nil {
+			number, ok := strconv.digit_to_int(cast(rune)data[0]);
+			if !ok do number = 0;
+			
+			stack[stack_top^] = number;
+			stack_top^ += 1;
+		}
 	}
 }
 
