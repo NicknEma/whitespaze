@@ -242,7 +242,7 @@ run_program :: proc(program: []u8) {
 	for index < len(program) {
 		instr, new_index := parse_instruction(program, index);
 		
-		#partial switch instr.operator {
+		switch instr.operator {
 			case .Stack_Push:      stack_push(stack[:], &stack_top, instr.number);
 			case .Stack_Duplicate: stack_duplicate(stack[:], &stack_top);
 			case .Stack_Copy:      stack_copy(stack[:], &stack_top, instr.number);
@@ -259,10 +259,13 @@ run_program :: proc(program: []u8) {
 			case .Heap_Store:    heap_store(stack[:], &stack_top, heap[:]);
 			case .Heap_Retrieve: heap_retrieve(stack[:], &stack_top, heap[:]);
 			
-			case .Flow_Control_Mark: flow_control_mark(&label_map, instr.label, new_index);
-			case .Flow_Control_Jump: flow_control_jump(&label_map, instr.label, &new_index);
+			case .Flow_Control_Mark:   flow_control_mark(&label_map, instr.label, new_index);
+			case .Flow_Control_Call:   flow_control_call(&label_map, instr.label, code_stack[:], &code_stack_top, &new_index);
+			case .Flow_Control_Jump:   flow_control_jump(&label_map, instr.label, &new_index);
 			case .Flow_Control_Jump_If_Zero:     flow_control_jump_if_zero(&label_map, instr.label, stack[:], stack_top, &new_index);
 			case .Flow_Control_Jump_If_Negative: flow_control_jump_if_negative(&label_map, instr.label, stack[:], stack_top, &new_index);
+			case .Flow_Control_Return: flow_control_return(&label_map, instr.label, code_stack[:], &code_stack_top, &new_index);
+			case .Flow_Control_Exit:   new_index = len(program);
 			
 			case .IO_Out_Char:   io_out_char(stack[:], &stack_top);
 			case .IO_Out_Number: io_out_number(stack[:], &stack_top);
@@ -285,6 +288,9 @@ stack: [1024]int;
 stack_top := 0
 
 heap: [1024]int;
+
+code_stack: [1024]int;
+code_stack_top := 0
 
 label_map: map[string]int;
 
@@ -412,6 +418,17 @@ flow_control_mark :: proc(label_map: ^map[string]int, label: string, index: int)
 	label_map[label] = index;
 }
 
+flow_control_call :: proc(label_map: ^map[string]int, label: string, code_stack: []int, code_stack_top: ^int, index: ^int) {
+	assert(stack_is_valid(code_stack, code_stack_top^));
+	
+	if code_stack_top^ < len(code_stack) {
+		code_stack[code_stack_top^] = index^;
+		code_stack_top^ += 1;
+		
+		index^ = label_map[label];
+	}
+}
+
 flow_control_jump :: proc(label_map: ^map[string]int, label: string, index: ^int) {
 	index^ = label_map[label];
 }
@@ -435,6 +452,15 @@ flow_control_jump_if_negative :: proc(label_map: ^map[string]int, label: string,
 		if cond < 0 {
 			index^ = label_map[label];
 		}
+	}
+}
+
+flow_control_return :: proc(label_map: ^map[string]int, label: string, code_stack: []int, code_stack_top: ^int, index: ^int) {
+	assert(stack_is_valid(code_stack, code_stack_top^));
+	
+	if code_stack_top^ > 0 {
+		index^ = code_stack[code_stack_top^ - 1];
+		code_stack_top^ -= 1;
 	}
 }
 
